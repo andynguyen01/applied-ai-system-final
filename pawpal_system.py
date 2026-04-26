@@ -90,11 +90,16 @@ class Task:
 
 		return urgency
 
-	def explain_why(self) -> str:
-		"""Return a short explanation for why the task was selected."""
+	def explain_why(self, pet_name: Optional[str] = None) -> str:
+		"""Return a short explanation for why the task was selected.
+
+		Args:
+			pet_name: Optional display name to use instead of ``pet_id``.
+		"""
 		due_text = self.due_time.strftime("%H:%M") if self.due_time else "any time"
+		pet_label = pet_name if pet_name else self.pet_id
 		return (
-			f"{self.description} for pet {self.pet_id} was selected because "
+			f"{self.description} for pet {pet_label} was selected because "
 			f"it is {self.priority} priority, {self.frequency}, and due around {due_text}."
 		)
 
@@ -333,10 +338,11 @@ class Scheduler:
 		ranked_tasks = self.rank_tasks(candidate_tasks, current_time=current_time)
 		selected_tasks = self.apply_owner_constraints(owner, ranked_tasks, day)
 		self.daily_plan = self.sort_by_time(selected_tasks)
+		pet_name_by_id = {pet.pet_id: pet.name for pet in owner.pets}
 
 		self._task_index = {task.task_id: task for task in self.daily_plan}
 		self._last_explanations = [
-			f"Included: {task.explain_why()}"
+			f"Included: {task.explain_why(pet_name=pet_name_by_id.get(task.pet_id))}"
 			for task in self.daily_plan
 		]
 
