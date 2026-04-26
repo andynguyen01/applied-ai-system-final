@@ -282,5 +282,47 @@ if st.button("Generate schedule"):
         st.markdown("### Why this plan")
         for line in scheduler.explain_plan().splitlines():
             st.write(f"- {line.replace('Included: ', '')}")
+
+        st.divider()
+        st.markdown("### Optimize schedule")
+        optimized = scheduler.optimize_schedule(owner, today)
+        optimized_tasks = optimized.get("tasks", [])
+
+        if optimized_tasks:
+            optimized_table = []
+            for task in optimized_tasks:
+                optimized_table.append(
+                    {
+                        "Optimized Time": task.due_time.strftime("%H:%M") if task.due_time else "--:--",
+                        "Pet": pet_name_by_id.get(task.pet_id, task.pet_id),
+                        "Task": task.description,
+                        "Priority": task.priority,
+                        "Duration": task.duration_minutes,
+                    }
+                )
+
+            st.success("Optimized schedule generated with conflict-aware time adjustments.")
+            st.table(optimized_table)
+
+            optimized_conflicts = scheduler.get_conflict_warnings(optimized_tasks, pet_name_by_id)
+            if optimized_conflicts:
+                st.warning("Some overlaps still remain after optimization:")
+                for warning in optimized_conflicts:
+                    st.warning(warning)
+            else:
+                st.success("No schedule conflicts detected in optimized plan.")
+
+            st.caption(
+                "Resolved conflicts: "
+                + str(optimized.get("conflicts_resolved", 0))
+                + " | Healthy-window adjustments: "
+                + str(optimized.get("window_adjustments", 0))
+            )
+
+            st.info("Optimization notes")
+            for note in optimized.get("adjustments", []):
+                st.write(f"  • {note}")
+        else:
+            st.warning("No tasks available for optimization.")
     else:
         st.warning("No tasks were selected for today.")

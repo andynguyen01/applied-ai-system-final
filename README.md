@@ -9,6 +9,7 @@ The original PawPal+ scheduler sorted tasks and detected conflicts, but it lacke
 - **RAG-Powered Validation**: Retrieves relevant pet-care science from multiple knowledge sources and uses Gemini AI to validate schedules against best practices.
 - **Observable Workflow**: See exactly how the AI makes decisions—view retrieved evidence, workflow steps, and raw model responses.
 - **Specialized Prompting**: The AI is trained via few-shot examples to behave like a pet-care expert, not a generic chatbot.
+- **Optimize Schedule (NEW)**: Automatically retimes tasks to reduce conflicts, avoid unhealthy windows (such as midnight bathing), and keep all pets in a fair, conflict-aware sequence.
 - **Evaluation Metrics**: Benchmark script demonstrates measurable improvement over baseline heuristics.
 
 ## Table of Contents
@@ -68,6 +69,13 @@ The app lets you:
 - Task dashboard sorted by due time.
 - Conflict warnings with pet names (not IDs).
 - "Why this plan" explanations.
+
+### Optimize Schedule Engine (NEW)
+- Adds a bottom section called **Optimize schedule** after the default plan.
+- Re-times tasks to avoid overlap instead of dropping one conflicting task.
+- Moves tasks into healthier windows by task type (example: shower/bath from midnight to daytime).
+- Works across multiple pets and preserves priority-aware ordering.
+- Shows optimization notes explaining each time adjustment.
 
 ## Project Structure
 
@@ -213,6 +221,11 @@ After launch, open the local URL shown in the terminal.
 ### 7. Understand Your Schedule
 - "Why this plan" section lists reasons each task was selected.
 
+### 8. Optimize Schedule (NEW)
+- Scroll to the **Optimize schedule** section at the bottom after generating a plan.
+- Review the adjusted schedule table and optimization notes.
+- Use it when the health validator flags risky timing (for example, late-night showering) or when pets have same-time conflicts.
+
 ## RAG System (Retrieval-Augmented Generation)
 
 ### What is RAG?
@@ -282,6 +295,14 @@ Multiple sources ensure the AI considers both broad principles and specialized k
   ```
 - **Output**: Per-test-case baseline/enhanced scores, improvement deltas, retrieved sources, workflow step counts.
 
+### 5. Conflict-Aware Optimizer
+- **File**: `pawpal_system.py` (`Scheduler.optimize_schedule`)
+- **Purpose**: Generate a second, improved schedule that resolves overlaps and unhealthy timing windows.
+- **Behavior**:
+  - Re-times conflicting tasks in slot increments.
+  - Keeps all due tasks in the optimized output when possible.
+  - Produces human-readable notes that justify each adjustment.
+
 ## Testing
 
 Run all tests:
@@ -291,8 +312,8 @@ python -m pytest -q
 
 Expected output:
 ```
-..............  [100%]
-14 passed in X.XXs
+................  [100%]
+16 passed in X.XXs
 ```
 
 The test suite covers:
@@ -302,6 +323,7 @@ The test suite covers:
 - Recurrence logic for daily and weekly tasks.
 - Time conflict detection and warning generation.
 - **RAG retrieval ranking and document loading (NEW).**
+- **Optimized schedule behavior for midnight safety and multi-pet conflicts (NEW).**
 
 ## Demo
 

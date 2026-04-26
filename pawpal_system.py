@@ -491,6 +491,203 @@ class Scheduler:
 		"""Return a task from the current plan index by id."""
 		return self._task_index.get(task_id)
 
+	def _to_minutes(self, value: time) -> int:
+		"""Convert a time value to minutes from midnight."""
+		return value.hour * 60 + value.minute
+
+	def _from_minutes(self, minutes: int) -> time:
+		"""Convert minutes from midnight back to a time value."""
+		minutes = minutes % (24 * 60)
+		return time(minutes // 60, minutes % 60)
+
+	def _window_for_task(self, task: Task) -> tuple[int, int, str]:
+		"""Return healthy scheduling window and a short rationale for task type."""
+		text = f"{task.task_type} {task.description}".lower()
+
+		if any(token in text for token in ["medication", "medicine", "med", "pill", "antibiotic"]):
+			return (5 * 60, 23 * 60, "Medication is allowed in a broad window but should stay consistent.")
+		if any(token in text for token in ["shower", "bath", "groom", "grooming"]):
+			return (8 * 60, 20 * 60, "Bathing/grooming is best during daytime to reduce stress.")
+		if any(token in text for token in ["walk", "exercise", "play"]):
+			return (6 * 60, 21 * 60 + 30, "Exercise is safer during daytime/evening windows.")
+		if any(token in text for token in ["feed", "meal", "breakfast", "dinner", "food"]):
+			return (6 * 60, 21 * 60, "Feeding should be in regular waking-hour windows.")
+		return (6 * 60, 22 * 60, "General care task placed within normal waking hours.")
+
+	def _priority_weight(self, priority: str) -> int:
+		"""Return numeric weight for priorities, higher means more important."""
+		mapping = {"high": 3, "medium": 2, "low": 1}
+		return mapping.get(priority.lower().strip(), 1)
+
+	def optimize_schedule(
+		self,
+		owner: Owner,
+		day: date,
+		current_time: Optional[time] = None,
+		slot_minutes: int = 15,
+	) -> Dict[str, Any]:
+		"""Build an optimized schedule that keeps all due tasks and resolves timing issues.
+
+		Optimization goals:
+		- keep due tasks in plan instead of dropping on conflicts
+		- avoid unhealthy timing windows (for example, midnight showers)
+		- avoid overlapping tasks across one or many pets
+		- keep higher-priority tasks earlier when conflicts happen
+
+		Returns:
+			Dictionary with optimized tasks and human-readable adjustments.
+		"""
+		if slot_minutes <= 0:
+			slot_minutes = 15
+
+		if current_time is None:
+			current_time = datetime.now().time()
+
+		candidate_tasks = self.collect_tasks(owner.pets, day)
+		if not candidate_tasks:
+			return {
+				"tasks": [],
+				"adjustments": ["No pending tasks available to optimize."],
+				"conflicts_resolved": 0,
+				"window_adjustments": 0,
+			}
+
+		# Copy tasks so optimization does not mutate canonical task definitions.
+		working_tasks: List[Task] = []
+		for task in candidate_tasks:
+			working_tasks.append(
+				Task(
+					task_id=task.task_id,
+					pet_id=task.pet_id,
+					description=task.description,
+					duration_minutes=task.duration_minutes,
+					priority=task.priority,
+					frequency=task.frequency,
+					due_time=task.due_time,
+					completed=task.completed,
+					task_type=task.task_type,
+					reason=task.reason,
+					scheduled_for=task.scheduled_for,
+				)
+			)
+
+		# Resolve simultaneous due-time collisions by importance first.
+		ranked_tasks = self.rank_tasks(working_tasks, current_time=current_time)
+		pet_name_by_id = {pet.pet_id: pet.name for pet in owner.pets}
+
+		# Track ranges as [start_min, end_min) for owner-level non-overlap.
+		occupied: List[tuple[int, int, str]] = []
+		optimized: List[Task] = []
+		adjustments: List[str] = []
+		conflicts_resolved = 0
+		window_adjustments = 0
+
+		for task in ranked_tasks:
+			pet_name = pet_name_by_id.get(task.pet_id, task.pet_id)
+			window_start, window_end, window_note = self._window_for_task(task)
+
+			if task.due_time is None:
+				preferred = window_start
+			else:
+				preferred = self._to_minutes(task.due_time)
+
+			if preferred < window_start or preferred > window_end:
+				old_text = self._from_minutes(preferred).strftime("%H:%M")
+				preferred = max(window_start, min(preferred, window_end))
+				new_text = self._from_minutes(preferred).strftime("%H:%M")
+				window_adjustments += 1
+				adjustments.append(
+					f"Moved {task.description} for {pet_name} from {old_text} to {new_text}. {window_note}"
+				)
+
+			start_min = preferred
+			end_min = start_min + task.duration_minutes
+
+			# Move forward in discrete slots until non-overlapping.
+			while True:
+				overlap = False
+				for existing_start, existing_end, existing_task_id in occupied:
+					if start_min < existing_end and end_min > existing_start:
+						overlap = True
+						break
+				if not overlap:
+					break
+
+				start_min += slot_minutes
+				end_min = start_min + task.duration_minutes
+				conflicts_resolved += 1
+
+			# If we drifted beyond preferred healthy window, clamp to the earliest possible
+			# slot in that window that still avoids overlap.
+			if end_min > window_end + task.duration_minutes:
+				start_min = window_start
+				end_min = start_min + task.duration_minutes
+				while True:
+					overlap = False
+					for existing_start, existing_end, existing_task_id in occupied:
+						if start_min < existing_end and end_min > existing_start:
+							overlap = True
+							break
+					if not overlap:
+						break
+					start_min += slot_minutes
+					end_min = start_min + task.duration_minutes
+
+			new_due = self._from_minutes(start_min)
+			if task.due_time is None:
+				adjustments.append(
+					f"Scheduled {task.description} for {pet_name} at {new_due.strftime('%H:%M')} to avoid overlap and fill open time."
+				)
+			elif self._to_minutes(task.due_time) != start_min:
+				adjustments.append(
+					f"Shifted {task.description} for {pet_name} from {task.due_time.strftime('%H:%M')} to {new_due.strftime('%H:%M')} to resolve conflicts."
+				)
+
+			task.due_time = new_due
+			occupied.append((start_min, end_min, task.task_id))
+			optimized.append(task)
+
+		optimized = self.sort_by_time(optimized)
+
+		# Rebuild explanation lines for the optimized plan.
+		self.daily_plan = optimized
+		self._task_index = {task.task_id: task for task in optimized}
+		self._last_explanations = [
+			f"Included: {task.explain_why(pet_name=pet_name_by_id.get(task.pet_id))}"
+			for task in optimized
+		]
+
+		# Prefer medication/high-priority first if tasks still share a due minute.
+		for conflict in self.detect_time_conflicts(optimized):
+			if not conflict.get("task_descriptions"):
+				continue
+			pet_names = [pet_name_by_id.get(pid, pid) for pid in conflict["pet_ids"]]
+			adjustments.append(
+				"Conflict remained at "
+				+ conflict["due_time"].strftime("%H:%M")
+				+ " across "
+				+ ", ".join(pet_names)
+				+ "; consider larger slot spacing."
+			)
+
+		available_minutes = owner.get_available_time(day)
+		total_minutes = sum(task.duration_minutes for task in optimized)
+		if total_minutes > available_minutes:
+			overflow = total_minutes - available_minutes
+			adjustments.append(
+				f"Optimized plan exceeds owner available time by {overflow} minutes; consider splitting into next day."
+			)
+
+		if not adjustments:
+			adjustments.append("Current plan already looks well-optimized for timing and conflicts.")
+
+		return {
+			"tasks": optimized,
+			"adjustments": adjustments,
+			"conflicts_resolved": conflicts_resolved,
+			"window_adjustments": window_adjustments,
+		}
+
 	def explain_plan(self) -> str:
 		"""Return human-readable explanations for the current daily plan."""
 		if not self.daily_plan:

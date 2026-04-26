@@ -12,7 +12,7 @@
 
 **PawPal+ Intelligent Pet-Care Scheduler**
 
-PawPal+ helps busy pet owners organize complex, multi-pet care routines using AI-powered validation and science-based recommendations. Instead of manually piecing together feeding times, medication schedules, and exercise routines, owners input their pets and tasks—and the system generates an optimized daily plan with AI-verified safety checks.
+PawPal+ helps busy pet owners organize complex, multi-pet care routines using AI-powered validation and science-based recommendations. Instead of manually piecing together feeding times, medication schedules, and exercise routines, owners input their pets and tasks—and the system generates a baseline daily plan with AI-verified safety checks plus a second optimized schedule that auto-adjusts timing.
 
 **Why it matters:** Pet owners often struggle to coordinate overlapping care needs across multiple animals (e.g., a cat requiring hourly medication and a dog needing structured exercise). The enhanced PawPal+ combines smart scheduling with Generative AI (Google Gemini) to validate plans against established veterinary best practices retrieved from a knowledge base. This reduces scheduling errors, improves pet health outcomes, and gives owners confidence their daily routine is science-backed.
 
@@ -29,6 +29,8 @@ The system follows a **layered architecture** with four key components:
 3. **Presentation Layer (app.py):** A Streamlit dashboard provides interactive UI for adding pets, managing tasks, generating schedules, and viewing validation results. It exposes "Agentic Workflow" and "RAG Debug" panels so users understand exactly how and why the AI made decisions.
 
 4. **Evaluation Layer (evaluate_rag.py):** A standalone benchmark script compares baseline heuristic scoring against the enhanced RAG-powered approach on fixed test cases, demonstrating measurable improvement for extra credit.
+
+5. **Optimization Layer (Scheduler.optimize_schedule in pawpal_system.py):** Produces a conflict-aware optimized schedule that shifts overlapping tasks and unsafe time windows (for example, midnight shower tasks) into healthier slots while keeping multi-pet task order practical.
 
 **Key Data Flow:**
 - User inputs pets/tasks → Scheduler ranks & sorts → RAG validator retrieves evidence from knowledge bases → Gemini synthesizes warnings → UI displays results with full transparency.
@@ -80,7 +82,7 @@ pip install -r requirements.txt
 
 ### Step 5: Run the Application
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 The app will open at `http://localhost:8501`. 
@@ -125,6 +127,15 @@ Applied to: Task scheduling shows medication and feeding at same time.
 ```
 
 **Key Output:** System flagged the unsafe sequence and recommended separation, with evidence cited from the knowledge base.
+
+**Optimized Schedule Output (new feature):**
+```
+Optimized Schedule:
+07:50-07:52   Administer heart medication (Medium)
+08:00-08:10   Breakfast kibble (Low)
+```
+
+This new optimizer takes the validator warning and automatically shifts timing to a safer sequence.
 
 ---
 
@@ -237,6 +248,11 @@ Hydration check placed mid-day to monitor for dehydration, a common antibiotic s
 - **Why:** No fine-tuning API access in free tier; few-shot is faster to iterate and doesn't require retraining.
 - **Trade-off:** Prompt size increases; API cost slightly higher. Acceptable for demonstration purposes.
 
+**7. Add an Explicit Optimization Pass After Validation**
+- **Decision:** Keep the original generated plan visible, then add a separate optimized schedule section instead of replacing the first plan.
+- **Why:** This lets users compare "what was requested" vs "what is safest/most practical" and makes system reasoning auditable.
+- **Trade-off:** Extra UI complexity and duplicate tables, but much better transparency and user control.
+
 ### Trade-Offs Summary
 
 | Decision | Benefit | Cost |
@@ -247,6 +263,7 @@ Hydration check placed mid-day to monitor for dehydration, a common antibiotic s
 | Observable workflow | User trust, debugging | Extra logging overhead |
 | BM25 retrieval | Lightweight, no dependencies | Less semantic matching |
 | Few-shot prompting | Faster iteration, no retraining | Larger prompt size |
+| Post-plan optimizer | Keeps tasks, resolves conflicts | More scheduling logic complexity |
 
 ---
 
@@ -254,15 +271,16 @@ Hydration check placed mid-day to monitor for dehydration, a common antibiotic s
 
 ### Test Coverage
 
-**14 unit tests covering:**
+**16 unit tests covering:**
 - Task creation, completion, and recurrence (daily/weekly)
 - Chronological sorting and urgency-based ranking
 - Filtering by pet name and completion status
 - Time conflict detection and warning generation
 - RAG document loading and retrieval ranking
 - Gemini API fallback behavior
+- Optimized scheduling for midnight safety windows and multi-pet overlap resolution
 
-**Test Result:** `14 passed in 2.06s` (using pytest 9.0.3, Python 3.13)
+**Test Result:** `16 passed` (using pytest 9.0.3, Python 3.13)
 
 ### What Worked Well
 
@@ -294,6 +312,9 @@ Hydration check placed mid-day to monitor for dehydration, a common antibiotic s
 
 7. **Duplicate Knowledge Bases:** Redundant sections in `knowledge_base.txt` and 3 separate science notes files cluttered the narrative.
    - **Fix:** Consolidated into clean structure: `knowledge_base.txt` (general) + `rag_sources/pet_science_notes.txt` (specialized).
+
+8. **Generated Plan Dropped Conflicting Tasks:** In overlap scenarios, one task could be excluded due to constraints, which felt too aggressive.
+   - **Fix:** Added an Optimize Schedule phase that retimes tasks in slot increments so both pets still get care while conflicts are minimized.
 
 ### What We Learned
 

@@ -426,3 +426,88 @@ def test_retrieve_relevant_context_prefers_matching_source() -> None:
 	assert retrieved
 	assert retrieved[0]["source"] == "dog_science_notes.txt"
 	assert "feeding" in retrieved[0]["text"].lower() or "exercise" in retrieved[0]["text"].lower()
+
+
+def test_optimize_schedule_moves_midnight_shower_to_daytime() -> None:
+	owner = Owner(owner_id="owner-1", name="Jordan", time_available_min_per_day=180)
+	pet = Pet(
+		pet_id="pet-1",
+		name="Mochi",
+		species="dog",
+		breed="Shiba Inu",
+		weight_kg=10.5,
+	)
+	pet.add_task(
+		Task(
+			task_id="task-shower",
+			pet_id=pet.pet_id,
+			description="Night shower",
+			duration_minutes=20,
+			priority="medium",
+			due_time=time(0, 15),
+			task_type="shower",
+		)
+	)
+	owner.add_pet(pet)
+
+	scheduler = Scheduler()
+	result = scheduler.optimize_schedule(owner, date(2026, 4, 26), current_time=time(8, 0))
+
+	assert result["tasks"]
+	optimized_task = result["tasks"][0]
+	assert optimized_task.due_time is not None
+	assert time(8, 0) <= optimized_task.due_time <= time(20, 0)
+	assert result["window_adjustments"] >= 1
+
+
+def test_optimize_schedule_resolves_same_time_multi_pet_conflict() -> None:
+	owner = Owner(owner_id="owner-1", name="Jordan", time_available_min_per_day=180)
+	dog = Pet(
+		pet_id="pet-dog",
+		name="Mochi",
+		species="dog",
+		breed="Shiba Inu",
+		weight_kg=10.5,
+	)
+	cat = Pet(
+		pet_id="pet-cat",
+		name="Luna",
+		species="cat",
+		breed="Domestic Short Hair",
+		weight_kg=4.2,
+	)
+
+	dog.add_task(
+		Task(
+			task_id="task-dog-walk",
+			pet_id=dog.pet_id,
+			description="Dog walk",
+			duration_minutes=20,
+			priority="high",
+			due_time=time(9, 0),
+			task_type="exercise",
+		)
+	)
+	cat.add_task(
+		Task(
+			task_id="task-cat-med",
+			pet_id=cat.pet_id,
+			description="Cat medication",
+			duration_minutes=10,
+			priority="high",
+			due_time=time(9, 0),
+			task_type="medication",
+		)
+	)
+
+	owner.add_pet(dog)
+	owner.add_pet(cat)
+
+	scheduler = Scheduler()
+	result = scheduler.optimize_schedule(owner, date(2026, 4, 26), current_time=time(8, 0), slot_minutes=10)
+	optimized_tasks = result["tasks"]
+
+	conflicts = scheduler.detect_time_conflicts(optimized_tasks)
+	assert conflicts == []
+	assert result["conflicts_resolved"] >= 1
+	assert len({task.due_time for task in optimized_tasks}) == len(optimized_tasks)
