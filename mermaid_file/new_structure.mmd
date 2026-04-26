@@ -1,0 +1,128 @@
+---
+id: pawpal-enhanced-structure
+---
+classDiagram
+    class Task {
+        +str task_id
+        +str pet_id
+        +str description
+        +int duration_minutes
+        +str priority
+        +str frequency
+        +Optional~time~ due_time
+        +bool completed
+        +str task_type
+        +str reason
+        +Optional~date~ scheduled_for
+        +set VALID_PRIORITIES
+        +set VALID_FREQUENCIES
+        +__post_init__() None
+        +is_due_on(day: date) bool
+        +mark_completed() None
+        +mark_complete() None
+        +mark_incomplete() None
+        +calculate_urgency(current_time: time) int
+        +explain_why() str
+    }
+
+    class Pet {
+        +str pet_id
+        +str name
+        +str species
+        +str breed
+        +float weight_kg
+        +str diet_plan
+        +List~str~ medications
+        +Dict~str, Any~ care_notes
+        +List~Task~ tasks
+        +add_task(task: Task) None
+        +remove_task(task_id: str) bool
+        +get_tasks_for_day(day: date) List~Task~
+        +get_pending_tasks_for_day(day: date) List~Task~
+        +update_health(weight_kg: float, notes: Optional~Dict~str, Any~~) None
+    }
+
+    class Owner {
+        +str owner_id
+        +str name
+        +int time_available_min_per_day
+        +Dict~str, Any~ preferences
+        +str notification_method
+        +List~Pet~ pets
+        +add_pet(pet: Pet) None
+        +remove_pet(pet_id: str) bool
+        +set_preferences(preferences: Dict~str, Any~) None
+        +get_available_time(day: date) int
+        +get_all_tasks(day: Optional~date~) List~Task~
+        +complete_task(task_id: str) bool
+    }
+
+    class Scheduler {
+        +Dict~str, Any~ constraints
+        +List~Task~ daily_plan
+        +Dict~str, Task~ _task_index
+        +List~str~ _last_explanations
+        +collect_tasks(pets: List~Pet~, day: date) List~Task~
+        +sort_by_time(tasks: List~Task~) List~Task~
+        +filter_tasks(tasks: List~Task~, pets: List~Pet~, completed: Optional~bool~, pet_name: Optional~str~) List~Task~
+        +rank_tasks(tasks: List~Task~, current_time: Optional~time~) List~Task~
+        +apply_owner_constraints(owner: Owner, tasks: List~Task~, day: date) List~Task~
+        +build_daily_plan(owner: Owner, day: date, current_time: Optional~time~) List~Task~
+        +mark_task_complete(owner: Owner, task_id: str, completed_on: Optional~date~) bool
+        +detect_time_conflicts(tasks: List~Task~) List~Dict~str, Any~~
+        +get_conflict_warnings(tasks: List~Task~, pet_name_by_id: Optional~Dict~str, str~~) List~str~
+        +reschedule_unfinished_tasks(owner: Owner, source_day: date, target_day: Optional~date~) int
+        +get_task_by_id(task_id: str) Optional~Task~
+        +explain_plan() str
+    }
+
+    class RAGValidator {
+        +str gemini_api_key
+        +Dict~str, str~ documents
+        +List~str~ workflow_steps
+        +bool gemini_executed
+        +str model_used
+        +str raw_response
+        +load_custom_documents() Dict~str, str~
+        +retrieve_relevant_context(query: str, documents: Dict~str, str~) List~Dict~str, Any~~
+        +validate_schedule(owner: Owner, tasks: List~Task~, pets: List~Pet~) ValidationResult
+        +_generate_with_gemini(prompt: str) str
+        +parse_validation_response(response: str) Dict~str, Any~
+        +_build_validation_prompt(tasks: List~Task~, pets: List~Pet~, retrieved_context: str) str
+        +_build_workflow_steps() List~str~
+    }
+
+    class ValidationResult {
+        +bool is_valid
+        +List~str~ warnings
+        +List~str~ optimizations
+        +str explanation
+        +List~str~ workflow_steps
+        +bool gemini_executed
+        +str model_used
+        +str raw_response
+        +str knowledge_base_preview
+    }
+
+    class KnowledgeBase {
+        +str source_name
+        +str file_path
+        +str content
+        +int character_count
+        +load_from_file(file_path: str) None
+        +get_relevant_chunks(query: str) List~str~
+    }
+
+    class Pets {
+        <<alias>>
+    }
+
+    Owner "1" o-- "0..*" Pet : manages
+    Pet "1" *-- "0..*" Task : owns
+    Scheduler ..> Owner : uses
+    Scheduler ..> Pet : reads from
+    Scheduler ..> Task : ranks/sorts/checks
+    Scheduler ..> RAGValidator : calls for validation
+    RAGValidator ..> KnowledgeBase : loads/retrieves
+    RAGValidator --> ValidationResult : returns
+    Pets ..> Pet : alias of

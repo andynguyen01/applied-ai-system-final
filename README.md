@@ -87,6 +87,7 @@ The app lets you:
 ├── .env                            # API key (not committed to Git)
 ├── .gitignore                      # Exclude .env and __pycache__
 ├── Pet Care Task Management.png    # System architecture diagram
+├── pawpal_structure.png            # New Mermaid structure diagram
 ├── pic1.png, pic2.png, pic3.png    # Demo images (original app)
 └── README.md                       # This file
 ```
@@ -96,6 +97,10 @@ The app lets you:
 The system follows a layered architecture for managing pet-care tasks:
 
 ![Pet Care Task Management Architecture](Pet%20Care%20Task%20Management.png)
+
+### Enhanced Mermaid Structure (New)
+
+![PawPal Enhanced Structure](pawpal_structure.png)
 
 **Core Layers:**
 - **Domain Layer** (pawpal_system.py): Pet, Owner, Task, and Scheduler classes with business logic.
@@ -170,7 +175,7 @@ If it shows "False" or an error, check that your `.env` file is in the project r
 ## Running the App
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 After launch, open the local URL shown in the terminal.
