@@ -1,6 +1,7 @@
 from datetime import date, time
 
 from pawpal_system import Owner, Pet, Scheduler, Task
+from rag_validator import load_custom_documents, retrieve_relevant_context
 
 
 def test_task_completion_marks_task_as_completed() -> None:
@@ -394,3 +395,34 @@ def test_get_conflict_warnings_returns_empty_list_when_no_conflicts() -> None:
 	warnings = scheduler.get_conflict_warnings([task_a, task_b])
 
 	assert warnings == []
+
+
+def test_load_custom_documents_reads_text_files(tmp_path) -> None:
+	first = tmp_path / "dog_notes.txt"
+	second = tmp_path / "cat_notes.txt"
+	first.write_text("Dog feeding should be consistent.", encoding="utf-8")
+	second.write_text("Cats benefit from short play sessions.", encoding="utf-8")
+
+	documents = load_custom_documents(source_dir=tmp_path)
+
+	assert set(documents.keys()) == {"dog_notes.txt", "cat_notes.txt"}
+	assert "consistent" in documents["dog_notes.txt"]
+
+
+def test_retrieve_relevant_context_prefers_matching_source() -> None:
+	knowledge_base = "General pet care guidance."
+	extra_documents = {
+		"dog_science_notes.txt": "Dogs need routine feeding and water before exercise.",
+		"cat_science_notes.txt": "Cats often prefer smaller, more frequent meals.",
+	}
+
+	retrieved = retrieve_relevant_context(
+		query="dog feeding and exercise timing",
+		knowledge_base=knowledge_base,
+		extra_documents=extra_documents,
+		top_k=2,
+	)
+
+	assert retrieved
+	assert retrieved[0]["source"] == "dog_science_notes.txt"
+	assert "feeding" in retrieved[0]["text"].lower() or "exercise" in retrieved[0]["text"].lower()

@@ -11,6 +11,8 @@ It combines scheduling logic, recurring task support, and conflict detection wit
 - Installation
 - Running the App
 - How to Use
+- RAG Enhancement
+- Evaluation
 - Scheduling Rules
 - Testing
 - Troubleshooting
@@ -44,6 +46,9 @@ The app lets you:
 - `pawpal_system.py`: Core domain and scheduling logic.
 - `tests/test_pawpal.py`: Unit tests for core behaviors.
 - `requirements.txt`: Runtime and test dependencies.
+- `rag_validator.py`: Multi-source RAG validation, retrieval, and workflow tracing.
+- `rag_sources/`: Extra science notes used as custom retrieval documents.
+- `evaluate_rag.py`: Baseline-vs-enhanced evaluation harness.
 
 ## Installation
 
@@ -88,6 +93,35 @@ After launch, open the local URL shown in the terminal.
 	 - conflict warnings appear when tasks overlap
 5. Click `Generate schedule` to produce the daily plan.
 6. Review the generated table and explanation output.
+
+## RAG Enhancement
+
+The validation flow now uses multiple sources instead of only one document:
+
+- `knowledge_base.txt`
+- `rag_sources/dog_science_notes.txt`
+- `rag_sources/cat_science_notes.txt`
+- `rag_sources/multi_pet_scheduling.txt`
+
+The validator retrieves the most relevant snippets for the current pets and tasks, then sends that evidence to Gemini with few-shot examples and source citation instructions. In the app, the `Agentic Workflow` and `RAG Debug` panels show the intermediate steps, retrieved source files, and raw model response so you can prove the pipeline ran.
+
+## Evaluation
+
+Run the comparison script to see baseline vs enhanced results on fixed test cases:
+
+```bash
+python evaluate_rag.py
+```
+
+The script prints:
+
+- baseline score
+- enhanced score
+- score delta
+- retrieved source files
+- workflow step count
+
+This gives a simple measurable comparison for the extra-credit demo.
 
 ## Scheduling Rules
 

@@ -422,6 +422,7 @@ class Scheduler:
 				{
 					"due_time": due_time_value,
 					"task_ids": [task.task_id for task in group],
+					"task_descriptions": [task.description for task in group],
 					"pet_ids": sorted(pet_ids),
 					"same_pet": len(pet_ids) == 1,
 				}
@@ -453,15 +454,16 @@ class Scheduler:
 		for conflict in self.detect_time_conflicts(tasks):
 			due_time_text = conflict["due_time"].strftime("%H:%M")
 			pet_names = [pet_name_by_id.get(pet_id, pet_id) for pet_id in conflict["pet_ids"]]
-			task_ids_text = ", ".join(conflict["task_ids"])
+			task_names = conflict.get("task_descriptions", [])
+			task_names_text = ", ".join(task_names) if task_names else "multiple tasks"
 			if conflict["same_pet"]:
 				warnings.append(
-					f"Warning: overlapping tasks at {due_time_text} for {pet_names[0]} ({task_ids_text})."
+					f"Warning: overlapping tasks at {due_time_text} for {pet_names[0]} ({task_names_text})."
 				)
 			else:
 				pets_text = ", ".join(pet_names)
 				warnings.append(
-					f"Warning: overlapping tasks at {due_time_text} across pets ({pets_text}) [{task_ids_text}]."
+					f"Warning: overlapping tasks at {due_time_text} across pets ({pets_text}) [{task_names_text}]."
 				)
 
 		return warnings

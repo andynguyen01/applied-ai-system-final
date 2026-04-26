@@ -4,6 +4,7 @@ from datetime import date, time
 import streamlit as st
 
 from pawpal_system import Owner, Pet, Scheduler, Task
+from rag_validator import load_knowledge_base, validate_schedule
 
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
@@ -208,9 +209,75 @@ if st.button("Generate schedule"):
         st.success("Schedule generated successfully.")
         st.table(schedule_table)
 
+        # RAG Validation: Check schedule against pet health knowledge
+        st.divider()
+        st.subheader("🔍 Health & Safety Validation")
+        try:
+            kb = load_knowledge_base()
+            validation = validate_schedule(plan, owner.pets, kb)
+            rag_info = validation.get("rag", {})
+            workflow_steps = validation.get("workflow", [])
+            
+            if not validation["valid"]:
+                st.error("⚠️ Schedule has potential health concerns:")
+                warnings = validation.get("warnings", [])
+                if not warnings:
+                    warnings = [
+                        "The validator flagged concerns but did not provide a structured warning list."
+                    ]
+                for warning in warnings:
+                    st.error(f"  • {warning}")
+            else:
+                st.success("✅ Schedule validated - No health concerns detected.")
+            
+            if validation["optimizations"]:
+                st.info("💡 Suggested improvements:")
+                for opt in validation["optimizations"]:
+                    st.write(f"  • {opt}")
+            
+            if validation["explanation"]:
+                st.write(f"**Validation Summary:** {validation['explanation']}")
+
+            if workflow_steps:
+                with st.expander("Agentic Workflow (observable steps)"):
+                    for step in workflow_steps:
+                        st.write(f"**{step.get('step', 'Step')}** - {step.get('status', 'unknown')}")
+                        st.caption(step.get("detail", ""))
+
+            with st.expander("RAG Debug (How to verify it is running)"):
+                st.write(f"Knowledge base characters loaded: {rag_info.get('kb_chars', len(kb))}")
+                st.write(f"Gemini call executed: {rag_info.get('used', False)}")
+                st.write(f"Model used: {rag_info.get('model_used', 'unknown')}")
+                sources_used = rag_info.get("retrieved_sources", [])
+                if sources_used:
+                    st.write("Retrieved sources: " + ", ".join(sources_used))
+                if rag_info.get("error"):
+                    st.write(f"Gemini error: {rag_info.get('error')}")
+                raw = rag_info.get("raw_response", "")
+                if raw:
+                    st.text_area(
+                        "Raw Gemini response",
+                        value=raw,
+                        height=180,
+                        disabled=True,
+                    )
+                kb_preview = kb[:400] + ("..." if len(kb) > 400 else "")
+                st.text_area(
+                    "Knowledge base preview used for retrieval",
+                    value=kb_preview,
+                    height=120,
+                    disabled=True,
+                )
+        except Exception as e:
+            st.warning(f"Could not run health validation: {str(e)}")
+
+        st.divider()
         plan_conflict_warnings = scheduler.get_conflict_warnings(plan, pet_name_by_id)
-        for warning in plan_conflict_warnings:
-            st.warning(warning)
+        if plan_conflict_warnings:
+            for warning in plan_conflict_warnings:
+                st.warning(warning)
+        else:
+            st.success("No schedule conflicts detected.")
 
         st.markdown("### Why this plan")
         for line in scheduler.explain_plan().splitlines():
