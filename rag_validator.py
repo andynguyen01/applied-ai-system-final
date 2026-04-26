@@ -5,8 +5,8 @@ import re
 from pathlib import Path
 from typing import List, Optional
 
-import google.generativeai as genai
 from dotenv import load_dotenv
+from google import genai
 
 from pawpal_system import Pet, Task
 
@@ -251,13 +251,12 @@ def _generate_with_gemini(prompt: str) -> tuple[Optional[str], Optional[str]]:
             f"GOOGLE_API_KEY or GEMINI_API_KEY not found. Checked .env at {env_path}"
         )
 
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
     last_error: Optional[str] = None
     for model_name in _gemini_model_candidates():
         try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(model=model_name, contents=prompt)
             text = (getattr(response, "text", "") or "").strip()
             if text:
                 return text, None
