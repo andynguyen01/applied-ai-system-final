@@ -335,11 +335,13 @@ The test suite covers:
 ![Original App - Schedule View](assets/pic2.png)
 ![Original App - Conflict Warnings](assets/pic3.png)
 
-### Enhanced App (With RAG Validation)
-*New demo images coming soon to show:*
+### Enhanced App (With RAG Validation) And Loom Video For Final App
+
+*The Final App:*
 - *Health & Safety Validation panel with AI warnings*
 - *Agentic Workflow steps visualization*
 - *RAG Debug panel with retrieved sources*
+- *Loom Video Demo Link*: https://www.loom.com/share/2ee5496662494003b9bbded12bd1e833
 
 ## Troubleshooting
 
