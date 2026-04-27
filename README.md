@@ -341,7 +341,7 @@ The test suite covers:
 - *Health & Safety Validation panel with AI warnings*
 - *Agentic Workflow steps visualization*
 - *RAG Debug panel with retrieved sources*
-- *Loom Video Demo Link*: https://www.loom.com/share/2ee5496662494003b9bbded12bd1e833
+- [*Loom Video Demo Link*](https://www.loom.com/share/2ee5496662494003b9bbded12bd1e833)
 
 ## Troubleshooting
 
