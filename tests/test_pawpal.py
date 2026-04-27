@@ -442,7 +442,7 @@ def test_optimize_schedule_moves_midnight_shower_to_daytime() -> None:
 			task_id="task-shower",
 			pet_id=pet.pet_id,
 			description="Night shower",
-			duration_minutes=20,
+			duration_minutes=45,
 			priority="medium",
 			due_time=time(0, 15),
 			task_type="shower",
@@ -457,7 +457,9 @@ def test_optimize_schedule_moves_midnight_shower_to_daytime() -> None:
 	optimized_task = result["tasks"][0]
 	assert optimized_task.due_time is not None
 	assert time(8, 0) <= optimized_task.due_time <= time(20, 0)
+	assert optimized_task.duration_minutes == 20
 	assert result["window_adjustments"] >= 1
+	assert any("Shortened Night shower" in note for note in result["adjustments"])
 
 
 def test_optimize_schedule_resolves_same_time_multi_pet_conflict() -> None:
@@ -482,7 +484,7 @@ def test_optimize_schedule_resolves_same_time_multi_pet_conflict() -> None:
 			task_id="task-dog-walk",
 			pet_id=dog.pet_id,
 			description="Dog walk",
-			duration_minutes=20,
+			duration_minutes=60,
 			priority="high",
 			due_time=time(9, 0),
 			task_type="exercise",
@@ -511,3 +513,35 @@ def test_optimize_schedule_resolves_same_time_multi_pet_conflict() -> None:
 	assert conflicts == []
 	assert result["conflicts_resolved"] >= 1
 	assert len({task.due_time for task in optimized_tasks}) == len(optimized_tasks)
+	assert any(task.duration_minutes == 30 for task in optimized_tasks)
+	assert any("Shortened Dog walk" in note for note in result["adjustments"])
+
+
+def test_optimize_schedule_caps_feeding_duration() -> None:
+	owner = Owner(owner_id="owner-1", name="Jordan", time_available_min_per_day=120)
+	pet = Pet(
+		pet_id="pet-1",
+		name="Mochi",
+		species="dog",
+		breed="Shiba Inu",
+		weight_kg=10.5,
+	)
+	pet.add_task(
+		Task(
+			task_id="task-feed",
+			pet_id=pet.pet_id,
+			description="Big breakfast",
+			duration_minutes=40,
+			priority="high",
+			due_time=time(8, 0),
+			task_type="feed",
+		)
+	)
+	owner.add_pet(pet)
+
+	scheduler = Scheduler()
+	result = scheduler.optimize_schedule(owner, date(2026, 4, 26), current_time=time(7, 0))
+	optimized_task = result["tasks"][0]
+
+	assert optimized_task.duration_minutes == 15
+	assert any("Shortened Big breakfast" in note for note in result["adjustments"])

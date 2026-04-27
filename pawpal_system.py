@@ -514,6 +514,20 @@ class Scheduler:
 			return (6 * 60, 21 * 60, "Feeding should be in regular waking-hour windows.")
 		return (6 * 60, 22 * 60, "General care task placed within normal waking hours.")
 
+	def _duration_profile(self, task: Task) -> tuple[int, str]:
+		"""Return a recommended maximum duration and short rationale for a task."""
+		text = f"{task.task_type} {task.description}".lower()
+
+		if any(token in text for token in ["shower", "bath", "groom", "grooming"]):
+			return (20, "Bathing/grooming should stay short to avoid stress or chilling.")
+		if any(token in text for token in ["walk", "exercise", "play", "run"]):
+			return (30, "Exercise blocks should stay moderate so pets do not overexert.")
+		if any(token in text for token in ["feed", "meal", "breakfast", "dinner", "food"]):
+			return (15, "Feeding blocks should be efficient and consistent.")
+		if any(token in text for token in ["medication", "medicine", "med", "pill", "antibiotic"]):
+			return (5, "Medication tasks should be quick and precise.")
+		return (task.duration_minutes, "No duration change needed for this task type.")
+
 	def _priority_weight(self, priority: str) -> int:
 		"""Return numeric weight for priorities, higher means more important."""
 		mapping = {"high": 3, "medium": 2, "low": 1}
@@ -585,6 +599,13 @@ class Scheduler:
 		for task in ranked_tasks:
 			pet_name = pet_name_by_id.get(task.pet_id, task.pet_id)
 			window_start, window_end, window_note = self._window_for_task(task)
+			recommended_duration, duration_note = self._duration_profile(task)
+			if task.duration_minutes > recommended_duration:
+				original_duration = task.duration_minutes
+				task.duration_minutes = recommended_duration
+				adjustments.append(
+					f"Shortened {task.description} for {pet_name} from {original_duration} to {task.duration_minutes} minutes. {duration_note}"
+				)
 
 			if task.due_time is None:
 				preferred = window_start

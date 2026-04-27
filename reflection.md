@@ -30,7 +30,7 @@ The system follows a **layered architecture** with four key components:
 
 4. **Evaluation Layer (evaluate_rag.py):** A standalone benchmark script compares baseline heuristic scoring against the enhanced RAG-powered approach on fixed test cases, demonstrating measurable improvement for extra credit.
 
-5. **Optimization Layer (Scheduler.optimize_schedule in pawpal_system.py):** Produces a conflict-aware optimized schedule that shifts overlapping tasks and unsafe time windows (for example, midnight shower tasks) into healthier slots while keeping multi-pet task order practical.
+5. **Optimization Layer (Scheduler.optimize_schedule in pawpal_system.py):** Produces a conflict-aware optimized schedule that shifts overlapping tasks, shortens overly long activities, and moves unsafe time windows (for example, midnight shower tasks) into healthier slots while keeping multi-pet task order practical.
 
 **Key Data Flow:**
 - User inputs pets/tasks → Scheduler ranks & sorts → RAG validator retrieves evidence from knowledge bases → Gemini synthesizes warnings → UI displays results with full transparency.

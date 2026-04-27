@@ -2,20 +2,10 @@
 
 PawPal+ is an intelligent pet-care planner that helps owners organize daily tasks across one or more pets using AI-powered insights and science-based recommendations.
 
-## 🆕 What's New
-
-The original PawPal+ scheduler sorted tasks and detected conflicts, but it lacked intelligent validation and reasoning. The enhanced version adds:
-
-- **RAG-Powered Validation**: Retrieves relevant pet-care science from multiple knowledge sources and uses Gemini AI to validate schedules against best practices.
-- **Observable Workflow**: See exactly how the AI makes decisions—view retrieved evidence, workflow steps, and raw model responses.
-- **Specialized Prompting**: The AI is trained via few-shot examples to behave like a pet-care expert, not a generic chatbot.
-- **Optimize Schedule (NEW)**: Automatically retimes tasks to reduce conflicts, avoid unhealthy windows (such as midnight bathing), and keep all pets in a fair, conflict-aware sequence.
-- **Evaluation Metrics**: Benchmark script demonstrates measurable improvement over baseline heuristics.
-
 ## Table of Contents
 
 - Overview
-- What's New (above)
+- What's New 
 - Features
 - Project Structure
 - Architecture
@@ -30,6 +20,16 @@ The original PawPal+ scheduler sorted tasks and detected conflicts, but it lacke
 - Demo
 - Troubleshooting
 
+## 🆕 What's New
+
+The original PawPal+ scheduler sorted tasks and detected conflicts, but it lacked intelligent validation and reasoning. The enhanced version adds:
+
+- **RAG-Powered Validation**: Retrieves relevant pet-care science from multiple knowledge sources and uses Gemini AI to validate schedules against best practices.
+- **Observable Workflow**: See exactly how the AI makes decisions — view retrieved evidence, workflow steps, and raw model responses.
+- **Specialized Prompting**: The AI is trained via few-shot examples to behave like a pet-care expert, not a generic chatbot.
+- **Optimize Schedule (NEW)**: Automatically retimes tasks and shortens overly long activities to reduce conflicts, avoid unhealthy windows (such as midnight bathing), and keep all pets in a fair, conflict-aware sequence.
+- **Evaluation Metrics**: Benchmark script demonstrates measurable improvement over baseline heuristics.
+
 ## Overview
 
 PawPal+ is designed for owners who need a clear daily plan for recurring and one-time pet-care tasks.
@@ -39,8 +39,8 @@ The app lets you:
 - Add care tasks with duration, priority, frequency, and due time.
 - Build a daily schedule sorted chronologically and ranked by urgency.
 - Detect overlapping task times and surface warnings.
-- **Validate your schedule against pet health best practices using AI (NEW).**
-- **Explain why tasks were selected and flagged, with cited evidence (NEW).**
+- **Validate your schedule against pet health best practices using AI (NEW FEATURE).**
+- **Explain why tasks were selected and flagged, with cited evidence (NEW FEATURE).**
 
 ## Features
 
@@ -54,7 +54,7 @@ The app lets you:
   - Recurring task generation on completion
   - Time conflict detection and warning messages
 
-### Health & Safety Validation (NEW)
+### Health & Safety Validation (NEW FEATURES)
 - Retrieves relevant guidance from multiple pet-care knowledge sources.
 - Uses Gemini AI to validate schedules against:
   - Medication timing and priorities
@@ -70,9 +70,10 @@ The app lets you:
 - Conflict warnings with pet names (not IDs).
 - "Why this plan" explanations.
 
-### Optimize Schedule Engine (NEW)
+### Optimize Schedule Engine (NEW FEATURES)
 - Adds a bottom section called **Optimize schedule** after the default plan.
 - Re-times tasks to avoid overlap instead of dropping one conflicting task.
+- Shortens overly long activity blocks when they exceed healthy task-specific limits.
 - Moves tasks into healthier windows by task type (example: shower/bath from midnight to daytime).
 - Works across multiple pets and preserves priority-aware ordering.
 - Shows optimization notes explaining each time adjustment.
@@ -106,7 +107,7 @@ The system follows a layered architecture for managing pet-care tasks:
 
 ![Pet Care Task Management Architecture](Pet%20Care%20Task%20Management.png)
 
-### Enhanced Mermaid Structure (New)
+### Enhanced Mermaid Structure (New Features)
 
 ![PawPal Enhanced Structure](pawpal_structure.png)
 
@@ -170,7 +171,7 @@ If you have a Google Cloud project:
 
 After saving `.env`, run:
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 Click "Generate schedule" and open the "RAG Debug" expander. You should see:
@@ -211,20 +212,22 @@ After launch, open the local URL shown in the terminal.
 - Click "Generate schedule" to build your daily plan.
 - The schedule is sorted chronologically and ranked by urgency.
 
-### 6. View Health & Safety Validation (NEW)
+### 6. View Health & Safety Validation (NEW FEATURES)
 - After generating a schedule, the app automatically validates it using AI.
 - **Warnings**: Displays if the schedule conflicts with pet-care best practices (with explanations).
-- **Optimizations**: AI-suggested improvements for scheduling or task priorities.
+- **Optimizations**: AI - suggested improvements for scheduling or task priorities.
 - **Agentic Workflow**: Expand to see the AI's reasoning steps.
 - **RAG Debug**: Expand to see which knowledge sources were retrieved and used.
 
 ### 7. Understand Your Schedule
 - "Why this plan" section lists reasons each task was selected.
 
-### 8. Optimize Schedule (NEW)
+### 8. Optimize Schedule 
 - Scroll to the **Optimize schedule** section at the bottom after generating a plan.
 - Review the adjusted schedule table and optimization notes.
 - Use it when the health validator flags risky timing (for example, late-night showering) or when pets have same-time conflicts.
+
+![Optimize Schedule Preview](optimize_schedule.png)
 
 ## RAG System (Retrieval-Augmented Generation)
 
