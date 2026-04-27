@@ -390,3 +390,7 @@ The decision to show conflict warnings with pet names (not UUIDs) came from obse
 This project taught me that **"applied AI" is fundamentally about integration and iteration**, not novel algorithms. The value isn't in Gemini (an existing model) or BM25 retrieval (a 30-year-old algorithm)—it's in combining them thoughtfully, handling edge cases, communicating results transparently, and iterating based on feedback.
 
 I'm now convinced that the future of AI isn't solely in training bigger models; it's in smarter applications of existing models: better retrieval, clearer prompts, robust fallbacks, and user-centered design.
+
+## What this project says about me as an AI engineer
+
+This project reflects my growth as an AI engineer by showing that I can take an idea and turn it into a working application, even without prior experience in the full tech stack. I leveraged AI tools not just to generate code, but to accelerate my learning, explore new concepts, and build a complete system efficiently. More importantly, I learned how to critically evaluate AI outputs, verify their correctness, and adapt them to fit real requirements. This demonstrates my ability to work collaboratively with AI as a tool — using it to save time while still maintaining control, understanding, and responsibility over the final system.

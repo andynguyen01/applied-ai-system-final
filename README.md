@@ -105,11 +105,11 @@ The app lets you:
 
 The system follows a layered architecture for managing pet-care tasks:
 
-![Pet Care Task Management Architecture](Pet%20Care%20Task%20Management.png)
+![Pet Care Task Management Architecture](assets/Pet%20Care%20Task%20Management.png)
 
 ### Enhanced Mermaid Structure (New Features)
 
-![PawPal Enhanced Structure](pawpal_structure.png)
+![PawPal Enhanced Structure](assets/pawpal_structure.png)
 
 **Core Layers:**
 - **Domain Layer** (pawpal_system.py): Pet, Owner, Task, and Scheduler classes with business logic.
@@ -227,7 +227,7 @@ After launch, open the local URL shown in the terminal.
 - Review the adjusted schedule table and optimization notes.
 - Use it when the health validator flags risky timing (for example, late-night showering) or when pets have same-time conflicts.
 
-![Optimize Schedule Preview](optimize_schedule.png)
+![Optimize Schedule Preview](assets/optimize_schedule.png)
 
 ## RAG System (Retrieval-Augmented Generation)
 
@@ -331,9 +331,9 @@ The test suite covers:
 ## Demo
 
 ### Original App (Before Enhancements)
-![Original App - Task Management](pic1.png)
-![Original App - Schedule View](pic2.png)
-![Original App - Conflict Warnings](pic3.png)
+![Original App - Task Management](assets/pic1.png)
+![Original App - Schedule View](assets/pic2.png)
+![Original App - Conflict Warnings](assets/pic3.png)
 
 ### Enhanced App (With RAG Validation)
 *New demo images coming soon to show:*
